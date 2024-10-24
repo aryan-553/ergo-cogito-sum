@@ -1,8 +1,11 @@
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
+use bevy::app::AppExit;
 
 use crate::GameState;
 use crate::consts;
+
+//use super::quit_confirmation;
 
 pub struct MainMenuPlugin;
 
@@ -17,12 +20,16 @@ struct JoinButton;
 #[derive(Component)]
 struct OnMainMenuScreen;
 
+#[derive(Component)]
+struct QuitButton;
+
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
         app
 
         .add_systems(OnEnter(GameState::MainMenu),setup_main_menu)
         .add_systems(Update, button_interaction_system.run_if(in_state(GameState::MainMenu)))
+        //.add_systems(Update, quit_confirmation::handle_confirmation_buttons.run_if(in_state(GameState::MainMenu)))
         .add_systems(OnExit(GameState::MainMenu),cleanup_menu);
 
     }
@@ -99,18 +106,43 @@ fn setup_main_menu(
                         },
                     ));
                 });
+                // Quit Button
+                parent
+                .spawn(ButtonBundle {
+                    style: Style {
+                        margin: UiRect::all(Val::Px(10.0)),
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        position_type: PositionType::Relative,
+                        ..Default::default()
+                    },
+                    background_color: consts::NORMAL_BUTTON.into(),
+                    ..Default::default()
+                })
+                .insert(QuitButton)
+                .with_children(|parent| {
+                    parent.spawn(TextBundle::from_section(
+                        "Quit",
+                        TextStyle {
+                            font: asset_server.load("fonts/Debrosee-ALPnL.ttf"),
+                            font_size: 40.0,
+                            color: Color::WHITE,
+                        },
+                    ));
+                });
         });
 }
 
 // System to handle button interaction
 fn button_interaction_system(
     mut interaction_query: Query<
-        (&Interaction, &mut BackgroundColor, Option<&HostButton>, Option<&JoinButton>),
+        (&Interaction, &mut BackgroundColor, Option<&HostButton>, Option<&JoinButton>, Option<&QuitButton>),
         (Changed<Interaction>, With<Button>),
     >,
+    mut app_exit_events: EventWriter<AppExit>,
     mut game_state: ResMut<NextState<GameState>>
 ) {
-    for (interaction, mut color, host_button, join_button) in interaction_query.iter_mut() {
+    for (interaction, mut color, host_button, join_button, quit_button) in interaction_query.iter_mut() {
         match *interaction {
             Interaction::Pressed => {
                 if host_button.is_some() {
@@ -119,6 +151,10 @@ fn button_interaction_system(
                 } else if join_button.is_some() {
                     println!("Join Game Button Clicked");// Switch to Lobby state
                     game_state.set(GameState::Lobby);
+                } else if quit_button.is_some() {
+                    println!("Quit Button Clicked");
+                    //std::process::exit(0); --> forced shutdown, no cleanup code executed
+                    app_exit_events.send(AppExit::Success);
                 }
             }
             Interaction::Hovered => {
@@ -130,6 +166,7 @@ fn button_interaction_system(
         }
     }
 }
+ 
 
 // System to cleanup menu when exiting MainMenu state
 fn cleanup_menu(mut commands: Commands, query: Query<Entity, With<OnMainMenuScreen>>) {

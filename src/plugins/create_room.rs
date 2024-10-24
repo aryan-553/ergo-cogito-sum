@@ -14,6 +14,9 @@ struct PublicButton;
 #[derive(Component)]
 struct PrivateButton;
 
+#[derive(Component)]
+struct BackToMainMenuButton;
+
 impl Plugin for RoomCreator {
     fn build(&self, app: &mut App) {
         app
@@ -68,6 +71,7 @@ fn setup_room_selector(
                             color: Color::WHITE,
                         },
                     ));
+                    
                 });
 
             parent
@@ -93,27 +97,54 @@ fn setup_room_selector(
                             color: Color::WHITE,
                         },
                     ));
+
                 });
+            // Back Button
+            parent.spawn(ButtonBundle {
+                style: Style {
+                    margin: UiRect::all(Val::Px(10.0)),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    position_type: PositionType::Relative,
+                    ..Default::default()
+                },
+                background_color: crate::consts::NORMAL_BUTTON.into(),
+                ..Default::default()
+            })
+            .insert(BackToMainMenuButton) // Insert the BackButton component
+            .with_children(|parent| {
+                parent.spawn(TextBundle::from_section(
+                    "Back to Main Menu",
+                    TextStyle {
+                        font: asset_server.load("fonts/Debrosee-ALPnL.ttf"),
+                        font_size: 40.0,
+                        color: Color::WHITE,
+                    },
+                ));
+            });
         });
 }
 
 // System to handle button interaction
 fn room_button_interaction_system(
     mut interaction_query: Query<
-        (&Interaction, &mut BackgroundColor, Option<&PublicButton>, Option<&PrivateButton>),
+        (&Interaction, &mut BackgroundColor, Option<&PublicButton>, Option<&PrivateButton>, Option<&BackToMainMenuButton>),
         (Changed<Interaction>, With<Button>),
     >,
     mut game_state: ResMut<NextState<GameState>>
 ) {
-    for (interaction, mut color, public_button, private_button) in interaction_query.iter_mut() {
+    for (interaction, mut color, public_button, private_button, back_to_main_menu) in interaction_query.iter_mut() {
         match *interaction {
             Interaction::Pressed => {
                 if public_button.is_some() {
                     println!("Public Game Button Clicked");// Switch to Lobby state
-                    game_state.set(GameState::MainMenu);
+                    game_state.set(GameState::LobbyHost);
                 } else if private_button.is_some() {
                     println!("Pivate Game Button Clicked");// Switch to Lobby state
-                    game_state.set(GameState::Lobby);
+                    game_state.set(GameState::LobbyHost);
+                } else if back_to_main_menu.is_some() {
+                    println!("Back Button Clicked"); // Switch to MainMenu state
+                    game_state.set(GameState::MainMenu);
                 }
             }
             Interaction::Hovered => {

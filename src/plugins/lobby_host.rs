@@ -2,21 +2,21 @@ use bevy::prelude::*;
 use crate::GameState;
 
 
-pub struct LobbyPlugin;
+pub struct LobbyHostPlugin;
 #[derive(Component)] 
 struct BackButton;
 
-impl Plugin for LobbyPlugin {
+impl Plugin for LobbyHostPlugin {
     fn build(&self, app: &mut App) {
         app
-        .add_systems(OnEnter(GameState::Lobby), setup_lobby_ui)
-        .add_systems(Update, button_interaction_system.run_if(in_state(GameState::Lobby))) 
-        .add_systems(OnExit(GameState::Lobby), cleanup_lobby);
+        .add_systems(OnEnter(GameState::LobbyHost), setup_lobby_host_ui)
+        .add_systems(Update, button_interaction_system.run_if(in_state(GameState::LobbyHost))) 
+        .add_systems(OnExit(GameState::LobbyHost), cleanup_lobby_host);
     }
 }
 
 // System to setup the lobby UI
-fn setup_lobby_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup_lobby_host_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
 
     let font = asset_server.load("fonts/Debrosee-ALPnL.ttf");
@@ -57,7 +57,7 @@ fn setup_lobby_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
             .insert(BackButton) // Insert the BackButton component
             .with_children(|parent| {
                 parent.spawn(TextBundle::from_section(
-                    "Back to Main Menu",
+                    "Back to Create Room Menu",
                     TextStyle {
                         font: font.clone(),
                         font_size: 30.0,
@@ -87,7 +87,7 @@ fn setup_lobby_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                     })
                     .with_children(|parent| {
                         parent.spawn(TextBundle::from_section(
-                            format!("Lobby {}", i + 1),
+                            format!("Host_Lobby {}", i + 1),
                             TextStyle {
                                 font: font.clone(),
                                 font_size: 30.0,
@@ -111,7 +111,7 @@ fn button_interaction_system(
             Interaction::Pressed => {
                 if back_button.is_some() {
                     println!("Back Button Clicked");
-                    game_state.set(GameState::MainMenu); 
+                    game_state.set(GameState::CreateRoom); 
                 }
             }
             Interaction::Hovered => {
@@ -125,7 +125,7 @@ fn button_interaction_system(
 }
 
 // System to cleanup the lobby UI when exiting the Lobby state
-fn cleanup_lobby(mut commands: Commands, query: Query<Entity, With<Node>>) {
+fn cleanup_lobby_host(mut commands: Commands, query: Query<Entity, With<Node>>) {
     for entity in query.iter() {
         commands.entity(entity).despawn_recursive();
     }
